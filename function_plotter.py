@@ -34,56 +34,8 @@ def parse_formula(formula_str):
                   Returns None if parsing fails.
     """
     try:
-        # Try parsing with parse_mathematica first, as it handles implicit multiplication
-        # and some function names like Log for natural logarithm.
-        # Provide 'x' as a known symbol.
-        expr = parse_mathematica(formula_str, {'x': x})
-
-        # Fallback logic:
-        # 1. If parse_mathematica returns the symbol 'x' but 'x' wasn't the whole formula,
-        #    it might mean it didn't parse correctly. Try sympify.
-        # 2. If parse_mathematica returns some other symbol (not 'x'), it might be
-        #    a constant like 'pi' or it failed and returned the string as a symbol. Try sympify.
-        # 3. If sympify results in an expression that doesn't contain 'x', but 'x' was in the
-        #    original string, it implies a parsing issue.
-
-        # Condition to try sympify:
-        # - expr is 'x' but formula_str is more than just 'x' (and not 'X')
-        # - expr is a symbol but not 'x' (e.g. 'pi', or failed parse of 'x*2')
-        # - expr does not contain 'x' as a free symbol, but 'x' was in the formula (e.g. "sin(y)")
-        should_try_sympify = False
-        if expr == x and formula_str.strip().lower() != 'x':
-            should_try_sympify = True
-        elif expr.is_Symbol and str(expr) != 'x':
-            should_try_sympify = True
-
-        if should_try_sympify:
-            try:
-                simple_expr = sympify(formula_str)
-                # If sympify gives something with x, or if original didn't seem to need x (e.g. "pi")
-                if simple_expr.has(x) or not any(c.isalpha() and c == 'x' for c in formula_str):
-                    expr = simple_expr
-            except Exception as e_sympify:
-                print(f"Sympify fallback also failed: {e_sympify}")
-                # Keep the parse_mathematica result if sympify fails badly
-
-        # Before lambdify, ensure 'x' is in the expression if it's not a constant.
-        # If 'expr' doesn't have 'x' as a free symbol, but 'x' was in the input string,
-        # then parsing likely failed to interpret 'x' correctly.
-        if not expr.has(x) and 'x' in formula_str.lower() and not expr.is_constant():
-             print(f"Warning: Parsed expression '{expr}' does not contain 'x' as expected from formula '{formula_str}'.")
-             # Attempt a direct sympify as a last resort if 'x' is missing.
-             try:
-                 last_resort_expr = sympify(formula_str)
-                 if last_resort_expr.has(x) or last_resort_expr.is_constant():
-                     expr = last_resort_expr
-                 else:
-                    print("Error: Could not correctly parse 'x' in the formula.")
-                    return None
-             except Exception as e_last_resort:
-                print(f"Error: Final attempt to parse 'x' in formula failed: {e_last_resort}")
-                return None
-
+        # Parse the formula using sympify
+        expr = sympify(formula_str)
 
         # Convert the sympy expression to a callable Python function
         # We use 'numpy' for the numerical evaluation for compatibility with numpy arrays
